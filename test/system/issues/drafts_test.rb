@@ -137,4 +137,44 @@ class Issues::DraftsTest < ApplicationSystemTestCase
 
     assert_text "Mestská časť nie je zatiaľ zapojená do portálu Odkaz pre starostu"
   end
+
+  test "photo can be dropped onto the upload box" do
+    login_as(@user)
+
+    click_on "Nahlásiť podnet"
+
+    find(".report-suggestion-add-pictures-con").drop(file_fixture("graffiti-with-geo.jpg").to_s)
+
+    assert_text "Lokalita"
+    assert_equal 1, @user.issues_drafts.last.photos.count
+  end
+
+  test "a file that is not an image is not kept when adding photos to a draft" do
+    login_as(@user)
+
+    click_on "Nahlásiť podnet"
+    attach_file "issues_draft_photos", file_fixture("graffiti-with-geo.jpg").to_s, visible: false
+    assert_text "Lokalita"
+    click_on "Späť"
+
+    attach_file "issues_draft_photos", file_fixture("responsible_subject_emails/ivanka_expected.txt").to_s, visible: false
+
+    assert_text "Fotky sú v nepodporovanom formáte."
+    assert_equal [ "graffiti-with-geo.jpg" ], @user.issues_drafts.last.photos.map { |photo| photo.filename.to_s }
+    assert_no_selector "img[src*='otazka-znacka']"
+  end
+
+  test "adding a photo to a draft keeps the photos already there" do
+    login_as(@user)
+
+    click_on "Nahlásiť podnet"
+    attach_file "issues_draft_photos", file_fixture("graffiti-with-geo.jpg").to_s, visible: false
+    assert_text "Lokalita"
+    click_on "Späť"
+
+    attach_file "issues_draft_photos", file_fixture("avatar.png").to_s, visible: false
+
+    assert_selector ".report-suggestion-pictures-block img", count: 2
+    assert_equal [ "avatar.png", "graffiti-with-geo.jpg" ], @user.issues_drafts.last.photos.map { |photo| photo.filename.to_s }.sort
+  end
 end

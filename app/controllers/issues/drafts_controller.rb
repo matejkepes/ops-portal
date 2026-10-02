@@ -31,7 +31,7 @@ class Issues::DraftsController < ApplicationController
   end
 
   def update
-    @draft.photos.attach(draft_params[:photos])
+    @draft.photos = @draft.photos.blobs + Array(draft_params[:photos])
     if @draft.save(context: :photos_step)
       redirect_to edit_issues_draft_path(@draft, next: params[:next])
     else

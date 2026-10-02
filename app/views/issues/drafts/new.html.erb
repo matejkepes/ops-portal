@@ -20,7 +20,10 @@
   <% @draft.errors.full_messages_for(:photos).each do |msg| %>
     <div class="error-message error-summary"><%= msg %></div>
   <% end %>
-  <div class="report-suggestion-add-pictures-con">
+  <div class="report-suggestion-add-pictures-con"
+       data-controller="dropzone"
+       data-dropzone-active-class="dropzone-active"
+       data-action="dragenter->dropzone#dragover dragover->dropzone#dragover dragleave->dropzone#dragleave drop->dropzone#drop dragover@window->dropzone#preventOpeningFile drop@window->dropzone#preventOpeningFile">
     <%= form_with(model: @draft, data: { controller: 'auto-submit' }) do |form| %>
       <%= form.hidden_field :issue_type %>
       <div class="report-suggestion-add-pictures-wrapper">
@@ -31,7 +34,7 @@
           </svg>
         <% end %>
         <div class="info-title">Nahrať fotku</div>
-        <%= form.file_field :photos, multiple: true, accept: "capture=camera;image/*", class: 'sr-only', data: { action: 'auto-submit#submit' } %>
+        <%= form.file_field :photos, multiple: true, accept: "capture=camera;image/*", class: 'sr-only', data: { action: 'auto-submit#submit', dropzone_target: 'input' } %>
         <%= hidden_field_tag :next, params[:next] %>
       </div>
       <%= form.submit data: { "turbo_submits_with": "Nahrávam..." }, class: "sr-only" %>
@@ -40,7 +43,7 @@
     <% if @draft.photos.attached? %>
       <div class="report-suggestion-pictures-block">
         <% if @draft.persisted? %>
-          <% @draft.photos.each do |photo| %>
+          <% @draft.photos.select(&:persisted?).each do |photo| %>
             <figure>
               <%= button_to issues_draft_destroy_photo_path(@draft, photo_id: photo.id, next: params[:next]), class: 'close-button', method: :delete, data: { 'turbo-confirm': 'Určite chcete túto fotku odstrániť?' } do %>
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38 38">

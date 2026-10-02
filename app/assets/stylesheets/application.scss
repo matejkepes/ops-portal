@@ -1114,7 +1114,8 @@ section.report .report-suggestion-description {
   @include mixins.rounded(30px);
   @include mixins.transition(all);
 }
-.report-suggestion-add-pictures-wrapper .button-add-picture:hover {
+.report-suggestion-add-pictures-wrapper .button-add-picture:hover,
+.dropzone-active .button-add-picture {
   background: variables.$green;
 }
 .report-suggestion-add-pictures-wrapper .button-add-picture svg {
