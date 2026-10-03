@@ -4,31 +4,34 @@ Citizen portal of [Odkaz pre starostu](https://novy.odkazprestarostu.sk). Rails 
 
 ## Local setup
 
-Works on macOS, Linux and Windows (via WSL).
+Tested on macOS and Linux.
 
 ### Prerequisites
 
-1. **Ruby tooling.** Follow [Installing Ruby on Rails](https://guides.rubyonrails.org/install_ruby_on_rails.html) for your OS up to and including activating mise. Skip installing Ruby and Rails: the project pins Ruby in `.tool-versions` and Rails in `Gemfile.lock`. On Windows the guide sets up WSL; run everything below in its Ubuntu shell.
-   Check: `mise doctor` shows `activated: yes`.
-2. **System libraries.**
+1. **A Ruby version manager**: mise (set up by the [Installing Ruby on Rails](https://guides.rubyonrails.org/install_ruby_on_rails.html) guide), asdf or rbenv. The project pins Ruby in `.ruby-version` and `.tool-versions` and Rails in `Gemfile.lock`, so don't install either by hand.
+2. **System libraries**, on macOS with [Homebrew](https://brew.sh):
    ```sh
    # macOS
    brew install vips libexif pkg-config libpq && brew link --force libpq
 
-   # Ubuntu, Debian, WSL
+   # Ubuntu, Debian
    sudo apt install libvips libexif-dev libpq-dev pkg-config libcurl4-openssl-dev postgresql-client tzdata
    ```
-3. **[Docker](https://docs.docker.com/get-started/get-docker/)**, running. On Windows, turn on Docker Desktop's [WSL integration](https://docs.docker.com/desktop/features/wsl/).
+3. **PostgreSQL 17 with PostGIS**, as in `docker-compose.yml`. Easiest is [Docker](https://docs.docker.com/get-started/get-docker/), which `docker compose up -d` below uses. With your own server, skip that step and create the role the app expects. It must be a superuser to enable PostGIS; to use another role, change `DATABASE_URL` in `.env`.
+   ```sh
+   # Linux
+   sudo -u postgres psql -c "CREATE ROLE ops LOGIN SUPERUSER PASSWORD 'ops';"
+   # macOS (Homebrew, Postgres.app)
+   psql postgres -c "CREATE ROLE ops LOGIN SUPERUSER PASSWORD 'ops';"
+   ```
 
 ### Setup
-
-On Windows, clone into the WSL filesystem (`~`), not under `/mnt/c`.
 
 ```sh
 git clone https://github.com/slovensko-digital/ops-portal.git
 cd ops-portal
-mise install              # Ruby from .tool-versions; check with ruby -v
-docker compose up -d      # PostgreSQL + PostGIS
+mise install              # or asdf install / rbenv install; check with ruby -v
+docker compose up -d      # PostgreSQL + PostGIS; skip with your own server
 cp .env.sample .env
 bin/setup --skip-server   # gems, database, seed data
 PORT=3000 bin/dev
@@ -45,7 +48,7 @@ Later runs: `docker compose up -d && PORT=3000 bin/dev`.
 | `PORT=3000 bin/dev` | App + CSS watcher |
 | `bin/rails console` | Console |
 | `bin/rails test` | Unit and integration tests |
-| `bin/rails test:system` | Browser tests (need Chrome where you run them; in WSL on Windows) |
+| `bin/rails test:system` | Browser tests (need Chrome) |
 | `bin/rubocop -a` | Lint and autofix |
 | `bin/ci` | Everything CI runs |
 | `/letter_opener` | Sent emails |
@@ -66,12 +69,16 @@ Seed users are in [`db/seeds/users.rb`](db/seeds/users.rb); all use the password
 
 | Symptom | Fix |
 |---|---|
-| `mise doctor` shows `activated: no` | Finish the mise activation step of the Rails guide, then open a new shell. |
 | `docker compose`: `permission denied` (Linux) | `sudo usermod -aG docker $USER`, then log out and in. |
-| `role "ops" does not exist`, `password authentication failed for user "ops"`, `extension "postgis" is not available`, or port 5432 already allocated | Another PostgreSQL owns port 5432, so the app reaches it instead of Docker's. Stop it, or use it if it has PostGIS and is at least the version in `docker-compose.yml`: `psql postgres -c "CREATE ROLE ops LOGIN SUPERUSER PASSWORD 'ops';"` |
+| `role "ops" does not exist`, `password authentication failed for user "ops"`, `extension "postgis" is not available`, or port 5432 already allocated | Another PostgreSQL owns port 5432, so the app reaches it instead of Docker's. Stop it, or use it as your own server ([Prerequisites](#prerequisites), step 3). |
+| `unrecognized configuration parameter "transaction_timeout"` | Your PostgreSQL is older than 17. Use Docker or upgrade ([Prerequisites](#prerequisites), step 3). |
 | `failed to execute: psql` | Install the PostgreSQL client ([Prerequisites](#prerequisites), step 2). |
 | `bin/dev`: `Address already in use` on port 5000 | Use `PORT=3000`; without it foreman picks 5000, which macOS AirPlay holds. |
 | `bin/rails db:test:prepare` tries to drop the development database | Use `RAILS_ENV=test bin/rails db:prepare`. Without it, the task reads `.env` and targets the development database. |
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). Only maintainers can push here, so open pull requests from a fork.
 
 ## Connect new Backoffice instance
 
